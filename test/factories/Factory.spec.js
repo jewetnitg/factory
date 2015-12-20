@@ -259,7 +259,7 @@ describe(`FactoryFactory`, () => {
 
         instance = Factory();
 
-        expect(context).to.not.be(null);
+        expect(context).to.not.equal(null);
         expect(context).to.equal(instance);
 
         done();

@@ -1,13 +1,13 @@
-Translator
+Factory
 ============================
 
-This npm module serves to make working with multiple locales easier.
+This npm module serves to make working with factories / classes easier.
 
 Adding it to a browserify project
 =================================
 
 ```
-npm install frontend-translator --save
+npm install frontend-factory --save
 ```
 Alternatively the build can be downloaded <a href="build.tar.gz">here</a>
 
@@ -49,6 +49,6 @@ npm run build
 for example.
 For all npm scripts available please see {@tutorial npm scripts}
 
-Walkthrough
+API documentation
 ===========
-For more information, please read the {@tutorial walkthrough}, for even more information please refer to the documented Namespaces and Classes.
+Please refer to {@link FactoryFactory}
