@@ -96,9 +96,8 @@
     "url": "git+ssh://git@github.com:jewetnitg/factory.git"
   },
   "keywords": [
-    "translate",
-    "i18n",
-    "internationalization",
+    "factory",
+    "classes",
     "browserify",
     "es6"
   ],
