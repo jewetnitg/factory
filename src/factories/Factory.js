@@ -3,6 +3,8 @@ import _ from 'lodash';
 /**
  * A {@link Factory} factory, creates a {@link Factory}. Options passed in will be made available on the options property on the instance.
  *
+ * In the case of using this module without browserify this function will be available on window.FactoryFactory.
+ *
  * @param options {Object} Object containing the properties listed below.
 
  * @property {Function|Object} [defaults] Object or function returning an object containing default for the options passed into the factory.

@@ -9,7 +9,8 @@ Adding it to a browserify project
 ```
 npm install frontend-factory --save
 ```
-Alternatively the build can be downloaded <a href="build.tar.gz">here</a>
+Alternatively the build can be downloaded <a href="build.tar.gz">here</a>.
+In this case the module is available under window.FactoryFactory.
 
 Installing
 ==========
@@ -36,7 +37,7 @@ To read more on the build setup, please refer to the {@tutorial build} documenta
 
 Npm scripts
 ===========
-The project comes with a couple npm scripts that can be executed by running
+The project comes with a couple npm scripts that can be executed by running.
 
 ```
 npm run <script>
@@ -47,8 +48,8 @@ npm run build
 ```
 
 for example.
-For all npm scripts available please see {@tutorial npm scripts}
+For all npm scripts available please see {@tutorial npm scripts}.
 
 API documentation
 ===========
-Please refer to {@link FactoryFactory}
+Please refer to {@link FactoryFactory}.
