@@ -23,6 +23,37 @@ describe(`FactoryFactory`, () => {
       done();
     });
 
+    describe(`options.events = true`, () => {
+
+      it(`should add event methods to the options if the events property on the options object is set to true`, (done) => {
+        const optionsForFactoryWithEvents = {
+          events: true
+        };
+        const optionsForFactoryWithoutEvents = {
+          events: false
+        };
+
+        const FactoryWithEvents = FactoryFactory(optionsForFactoryWithEvents);
+        const FactoryWithoutEvents = FactoryFactory(optionsForFactoryWithoutEvents);
+
+        const instanceWithEvents = FactoryWithEvents();
+        const instanceWithoutEvents = FactoryWithoutEvents();
+
+        expect(instanceWithEvents.on).to.be.a('function');
+        expect(instanceWithEvents.off).to.be.a('function');
+        expect(instanceWithEvents.trigger).to.be.a('function');
+        expect(instanceWithEvents.once).to.be.a('function');
+
+        expect(instanceWithoutEvents.on).to.not.be.a('function');
+        expect(instanceWithoutEvents.off).to.not.be.a('function');
+        expect(instanceWithoutEvents.trigger).to.not.be.a('function');
+        expect(instanceWithoutEvents.once).to.not.be.a('function');
+
+        done();
+      });
+
+    });
+
     describe(`Factory(options)`, () => {
 
       it(`should return an instance of Factory`, (done) => {

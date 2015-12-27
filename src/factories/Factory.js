@@ -1,11 +1,42 @@
+import events from 'events';
 import _ from 'lodash';
+
+// @todo refactor
+// @todo test
+function eventsMixin(dst = {}) {
+  const eventEmitter = new events.EventEmitter();
+  Object.assign(dst, {
+    on(event, callback) {
+      eventEmitter.on(event, callback);
+    },
+    trigger(event, data) {
+      eventEmitter.emit(event, data);
+    },
+    once(event, callback) {
+      const cb = (data) => {
+        callback(data);
+        this.off(event, cb);
+      };
+      this.on(event, cb);
+    },
+    off(event, callback) {
+      if (callback) {
+        eventEmitter.removeListener(event, callback);
+      } else {
+        eventEmitter.removeAllListeners(event);
+      }
+    }
+  });
+}
 
 /**
  * A {@link Factory} factory, creates a {@link Factory}. Options passed in will be made available on the options property on the instance.
  *
  * In the case of using this module without browserify this function will be available on window.FactoryFactory.
  *
- * @param options {Object} Object containing the properties listed below.
+ * @todo add support for mixins
+ * @todo refactor private functions to Factory.validate(factoryOptions, instanceOptions) etc.
+ * @param factoryOptions {Object} Object containing the properties listed below.
 
  * @property {Function|Object} [defaults] Object or function returning an object containing default for the options passed into the factory.
  * @property {Function|Object|String|Array<Function|Object|String|Array>} [validate] Gets called after defaults are set, allows to validate options passed into the factory, can be a function, a string (representing a required property), a hashmap in the format of {'property': typeOrInstance}, {'name': 'string'} for example, or a mixed array of the previously mentioned.
@@ -60,31 +91,37 @@ import _ from 'lodash';
  *   }
  * });
  */
-function FactoryFactory(options = {}) {
+function FactoryFactory(factoryOptions = {}) {
   runDefaults({
     defaults: FactoryFactory.defaults
-  }, options);
+  }, factoryOptions);
 
-  options.prototype = options.prototype || {};
-  options.defaults = options.defaults || {};
-  options.props = options.props || {};
+  factoryOptions.prototype = factoryOptions.prototype || {};
+  factoryOptions.defaults = factoryOptions.defaults || {};
+  factoryOptions.props = factoryOptions.props || {};
+
+  if (factoryOptions.events) {
+    eventsMixin(factoryOptions.prototype);
+  }
 
   /**
    *
-   * @param opts {Object} Options for the factory
+   * @param instanceOptions {Object} Options for the factory
    *
    * @class Factory
    */
-  function Factory(opts = {}) {
-    runDefaults(options, opts);
-    runValidate(options.validate, opts);
+  function Factory(instanceOptions = {}) {
+    runDefaults(Factory, instanceOptions);
+    runValidate(Factory.validate, instanceOptions);
 
-    const instance = runFactory(options, opts) || Object.create(Factory.prototype, runProps(options, opts));
-    instance.options = opts;
-    runInitialize(instance, options);
+    const instance = runFactory(Factory, instanceOptions) || Object.create(Factory.prototype, runProps(Factory, instanceOptions));
+    instance.constructor = Factory;
+    instance.options = instanceOptions;
+    runInitialize(instance, Factory);
 
     return instance;
   }
+
 
   /**
    * The options passed into the {@link FactoryFactory} when it created this {@link Factory}.
@@ -93,9 +130,16 @@ function FactoryFactory(options = {}) {
    * @memberof Factory
    * @type {Object}
    */
-  Factory.options = options;
+  Factory.options = factoryOptions;
 
-  Factory.prototype = options.prototype;
+  Factory.prototype = factoryOptions.prototype;
+
+  /**
+   * @todo apply hacky fix obj = {['m' + '3']: function () {}} // (C) console.log(obj.m3.name); // m3
+   * @todo document
+   * @todo test
+   */
+  //Factory.name = options.name || Factory.name;
 
   /**
    * The defaults property passed into the {@link FactoryFactory} for this {@link Factory}, used to set defaults on the options passed into this {@link Factory}.
@@ -105,7 +149,7 @@ function FactoryFactory(options = {}) {
    * @static
    * @type {Object|Function}
    */
-  Factory.defaults = options.defaults;
+  Factory.defaults = factoryOptions.defaults;
 
   /**
    * The validate property passed into the {@link FactoryFactory} for this {@link Factory}, used to validate options passed into this {@link Factory}.
@@ -115,7 +159,7 @@ function FactoryFactory(options = {}) {
    * @static
    * @type {Object|Function}
    */
-  Factory.validate = options.validate;
+  Factory.validate = factoryOptions.validate;
 
   /**
    * The factory property passed into the {@link FactoryFactory} for this {@link Factory}, if provided, this, instead of Object.create is used to create the instance, and Factory#props will be ignored.
@@ -125,7 +169,7 @@ function FactoryFactory(options = {}) {
    * @static
    * @type {Function}
    */
-  Factory.factory = options.factory;
+  Factory.factory = factoryOptions.factory;
 
   /**
    * The props property passed into the {@link FactoryFactory} for this {@link Factory}, passed to Object.create as the second (props) argument.
@@ -135,7 +179,7 @@ function FactoryFactory(options = {}) {
    * @static
    * @type {Object|Function}
    */
-  Factory.props = options.props;
+  Factory.props = factoryOptions.props;
 
   /**
    * The initialize property passed into the {@link FactoryFactory} for this {@link Factory}, this function is called in the context of the created instance once it has been created.
@@ -145,7 +189,7 @@ function FactoryFactory(options = {}) {
    * @static
    * @type {Function}
    */
-  Factory.initialize = options.initialize;
+  Factory.initialize = factoryOptions.initialize;
 
   /**
    * Creates a new {@link Factory} by extending this {@link Factory}, accepts the same arguments as the {@link FactoryFactory}.
@@ -170,11 +214,9 @@ function FactoryFactory(options = {}) {
     //noinspection JSUnresolvedFunction
     const extendedOptions = _.merge({
       prototype: {}
-    }, options, extendOptions);
+    }, factoryOptions, extendOptions);
 
-    Object.setPrototypeOf(extendedOptions.prototype, options.prototype);
-
-    extendedOptions.prototype.__proto__ = options.prototype;
+    Object.setPrototypeOf(extendedOptions.prototype, factoryOptions.prototype);
 
     extendedOptions.factory = function (opts = {}) {
 
@@ -182,6 +224,7 @@ function FactoryFactory(options = {}) {
       const instance = Factory(opts);
 
       Object.setPrototypeOf(instance, extendedOptions.prototype);
+      Object.assign(instance, extendOptions.prototype);
 
       return instance;
     };
@@ -204,27 +247,27 @@ function FactoryFactory(options = {}) {
  */
 FactoryFactory.defaults = {};
 
-function runDefaults(options = {}, opts = {}) {
+function runDefaults(Factory = {}, opts = {}) {
   let defaults = {};
 
-  if (typeof options.defaults === 'function') {
-    defaults = options.defaults(opts);
-  } else if (!Array.isArray(options.defaults) && typeof options.defaults === 'object') {
-    defaults = options.defaults;
+  if (typeof Factory.defaults === 'function') {
+    defaults = Factory.defaults(opts);
+  } else if (!Array.isArray(Factory.defaults) && typeof Factory.defaults === 'object') {
+    defaults = Factory.defaults;
   }
 
   _.defaults(opts, defaults);
 }
 
-function runValidate(validate = {}, opts = {}) {
-  if (typeof validate === 'function') {
-    return validate(opts);
-  } else if (Array.isArray(validate)) {
-    _.each(validate, (val) => {
+function runValidate(Factory = {}, opts = {}) {
+  if (typeof Factory === 'function') {
+    return Factory(opts);
+  } else if (Array.isArray(Factory)) {
+    _.each(Factory, (val) => {
       runValidate(val, opts);
     });
-  } else if (typeof validate === 'object') {
-    _.each(validate, (type, key) => {
+  } else if (typeof Factory === 'object') {
+    _.each(Factory, (type, key) => {
       const value = opts[key];
 
       if (typeof value === 'undefined' || value === null) {
@@ -238,9 +281,9 @@ function runValidate(validate = {}, opts = {}) {
       }
 
     });
-  } else if (typeof validate === 'string') {
-    const value = opts[validate];
-    const message = `Can't construct, ${validate} property not provided`;
+  } else if (typeof Factory === 'string') {
+    const value = opts[Factory];
+    const message = `Can't construct, ${Factory} property not provided`;
     let valid = true;
 
     if (typeof value === 'undefined' || value === null) {
@@ -261,29 +304,29 @@ function runValidate(validate = {}, opts = {}) {
 }
 
 
-function runFactory(options = {}, opts = {}) {
-  if (typeof options.factory === 'function') {
-    return options.factory(opts);
+function runFactory(Factory = {}, opts = {}) {
+  if (typeof Factory.factory === 'function') {
+    return Factory.factory(opts);
   }
 
   return false;
 }
 
-function runProps(options = {}, opts = {}) {
-  if (options.props) {
-    if (typeof options.props === 'function') {
-      return options.props(opts);
-    } else if (!Array.isArray(options.props) && typeof options.props === 'object') {
-      return options.props;
+function runProps(Factory = {}, opts = {}) {
+  if (Factory.props) {
+    if (typeof Factory.props === 'function') {
+      return Factory.props(opts);
+    } else if (!Array.isArray(Factory.props) && typeof Factory.props === 'object') {
+      return Factory.props;
     }
   }
 
   return false;
 }
 
-function runInitialize(instance = {}, options = {}) {
-  if (typeof options.initialize === 'function') {
-    return options.initialize.call(instance);
+function runInitialize(instance = {}, Factory = {}) {
+  if (typeof Factory.initialize === 'function') {
+    return Factory.initialize.call(instance);
   }
 
   return false;
